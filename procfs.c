@@ -13,11 +13,12 @@
 
 int 
 procfsisdir(struct inode *ip) {
-  return 0;
+	return ip->minor == T_DIR;
 }
 
 void 
 procfsiread(struct inode* dp, struct inode *ip) {
+
 }
 
 int
