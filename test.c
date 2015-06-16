@@ -4,6 +4,8 @@
 #include "types.h"
 #include "stat.h"
 #include "user.h"
+#include "fcntl.h"
+#include "fs.h"
 
 void itoa(int n, char *str){
 	int temp, len;
@@ -23,13 +25,15 @@ void itoa(int n, char *str){
 int
 main(void)
 {
-  int pid;
+  int pid,fd;
   char path[16];
   pid = getpid();
   strcpy(path, "/proc/");
   itoa(pid, path+6);
-
   printf(1, "user tries to open path: %s\n", path);
+  fd = open(path, O_RDONLY);
+  printf(1, "fd: %d\n",fd);
+
 
 
   exit();
