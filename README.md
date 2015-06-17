@@ -1,2 +1,6 @@
-# OS152_xv6_4
-OPERATING SYSTEMS course – ASSIGNMENT 4 FILE SYSTEMS
+Operating Systems 2015, Ben Guriun University,
+Assignment 4: FILE SYSTEMS
+
+Contributers:
+Yoaz Menda
+Michael Borinsky
