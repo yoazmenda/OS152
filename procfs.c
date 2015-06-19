@@ -39,8 +39,17 @@ procfsisdir(struct inode *ip) {
 }
 
 
-void 
+
+void
 procfsiread(struct inode* dp, struct inode *ip) {
+	ip->flags |= I_VALID;
+	ip->type = T_DEV;
+	ip->major = 2;
+	//if ((ip->inum % 1000) == FDINFO || dp->inum == PROC_INUM)
+	//	ip->minor = T_DIR;
+	//else
+		ip->minor = T_FILE;
+	ip->ref = 1;
 
 }
 
@@ -50,17 +59,14 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
 	struct dirent *buffer = (struct dirent *)buf;
 	struct proc *p;
 	//struct dirent dot, dotdot;
-	ushort inode_num = 60000;
 	if (namei("proc")==ip){
-		cprintf("proc device read\n");
 		//dot.inum = 0;
 		//dot.name=""
-
 		acquire(&ptable.lock);
 		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 			if(p->state != UNUSED && p->state != ZOMBIE){
 				itoa(p->pid, de->name);
-				de->inum = ++inode_num;
+				de->inum = p->pid + 60000;
 				memmove(buffer, de, sizeof(struct dirent));
 				memset(de, 0, sizeof(struct dirent));
 				buffer++;
@@ -68,11 +74,16 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
 		}
 		release(&ptable.lock);
 		memmove(dst, buf+off, n);
+		return n;
 	}
-	else{
-		cprintf("proc device inner files read\n");
+	//case: /proc/pid example: /proc/5
+	//else if(){
+//
+	//}
 
-	}
+
+
+
 
 	return 0;
 }

@@ -1,6 +1,3 @@
-// Test that fork fails gracefully.
-// Tiny executable so that the limit can be filling the proc table.
-
 #include "types.h"
 #include "stat.h"
 #include "user.h"
@@ -25,6 +22,12 @@ void itoa(int n, char *str){
 int
 main(void)
 {
+
+  //test0: /proc/
+  int fd = open("/proc/",O_RDONLY);
+  printf(1, "fd: %d\n",fd);
+/*
+  //test1: /proc/pid
   int pid,fd;
   char path[16];
   pid = getpid();
@@ -33,6 +36,7 @@ main(void)
   printf(1, "user tries to open path: %s\n", path);
   fd = open(path, O_RDONLY);
   printf(1, "fd: %d\n",fd);
+*/
 
 
 

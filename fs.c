@@ -530,7 +530,7 @@ dirlookup(struct inode *dp, char *name, uint *poff)
       inum = de.inum;
       ip = iget(dp->dev, inum);
       if (!(ip->flags & I_VALID) && dp->type == T_DEV && devsw[dp->major].iread) {
-        devsw[dp->major].iread(dp, ip);
+    	  devsw[dp->major].iread(dp, ip);
       }
       return ip;
     }
@@ -618,8 +618,10 @@ namex(char *path, int nameiparent, char *name)
 {
   struct inode *ip, *next;
 
-  if(*path == '/')
-    ip = iget(ROOTDEV, ROOTINO);
+  if(*path == '/'){
+	  ip = iget(ROOTDEV, ROOTINO);
+  }
+
   else
     ip = idup(proc->cwd);
 
