@@ -11,7 +11,7 @@
 #include "proc.h"
 #include "x86.h"
 
-void itoa(int n, char *str){
+int itoa(int n, char *str){
 	int temp, len;
 	temp = n;
 	len = 1;
@@ -24,6 +24,7 @@ void itoa(int n, char *str){
 		n/=10;
 	}
 	str[len]='\0';
+	return len-1;
 }
 
 
@@ -48,6 +49,7 @@ procfsisdir(struct inode *ip) {
 
 void
 procfsiread(struct inode* dp, struct inode *ip) {
+
 	ip->flags |= I_VALID;
 	ip->type = T_DEV;
 	ip->major = 2;
@@ -61,31 +63,48 @@ procfsiread(struct inode* dp, struct inode *ip) {
 
 int
 procfsread(struct inode *ip, char *dst, int off, int n) {
-	struct dirent *de=0;
-	struct dirent *buffer;
+	//cprintf("size of struct dirent: %d\n", sizeof(struct dirent));
+	char pid_name[4];
+	int len;
 	struct proc *p;
+	struct dirent *de = (struct dirent *)buf;
+	char * prev = buf;
 
-	//case: ip = "/proc/"
+	//case /proc/
 	if (namei("proc")==ip){
-		buffer = (struct dirent *)buf;
-		acquire(&ptable.lock);
+	acquire(&ptable.lock);
 		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 			if(p->state != UNUSED && p->state != ZOMBIE){
-				itoa(p->pid, de->name);
+				//PID
+				len = itoa(p->pid, pid_name);
+				memmove(de->name, pid_name, len+1);
+				//inode number
 				de->inum = p->pid + 60000;
-				memmove(buffer, de, sizeof(struct dirent));
-				memset(de, 0, sizeof(struct dirent));
-				buffer++;
+				de  = (struct dirent *)prev+len+1+(sizeof (ushort));
+				prev = (char *)de;
 			}
 		}
-		release(&ptable.lock);
 		memmove(dst, buf+off, n);
-		return n;
+
+		//test : print result:
+//		de = (struct dirent *)dst;
+//		char * prev = buf;
+//		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+//			if(p->state != UNUSED && p->state != ZOMBIE){
+//				cprintf("de->name: %s.\n", de->name);
+//				cprintf("de->num: %d.\n", de->inum);
+//				de  = (struct dirent *)prev+len+1+2;
+//				prev = (char *)de;
+//			}
+//		}
+			release(&ptable.lock);
 	}
 
-	else if (ip->inum >= 60000){
-		cprintf("case /proc/5");
-	}
+//	else if(){
+//
+//
+//	}
+
 	return 0;
 }
 
