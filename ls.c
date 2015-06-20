@@ -47,6 +47,7 @@ ls(char *path)
     break;
   
   case T_DIR:
+	  printf(1,"OH NO\n");
     if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
       printf(1, "ls: path too long\n");
       break;
@@ -69,6 +70,7 @@ ls(char *path)
 
   // CHANGED
   case T_DEV:
+	 //printf(1,"HERE1\n");
       if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
         printf(1, "ls: path too long\n");
         break;
@@ -77,19 +79,27 @@ ls(char *path)
       p = buf+strlen(buf);
       *p++ = '/';
       while(read(fd, &de, sizeof(de)) == sizeof(de)){
+    	  //printf(1,"THE NAME IS %s\n",de.name);
+
+    	//printf(1,"HERE3");
         if(de.inum == 0)
           continue;
+        //printf(1,"HERE 4\n");
         memmove(p, de.name, DIRSIZ);
+       // printf(1,"HERE 5\n");
         p[DIRSIZ] = 0;
         if(stat(buf, &st) < 0 && 0){
           printf(1, "ls: cannot stat %s\n", buf);
           continue;
         }
+       // printf(1,"HERE 6\n");
         printf(1, "%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
+        //printf(1,"HERE 7\n");
       }
       break;
 
   }
+  //printf(1,"HERE 9\n");
   close(fd);
 }
 

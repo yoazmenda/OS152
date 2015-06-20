@@ -26,7 +26,7 @@ void itoa(int n, char *str){
 	str[len]='\0';
 }
 
-char buf[(NPROC+2) * sizeof(struct dirent)];
+
 
 extern struct {
   struct spinlock lock;
@@ -55,25 +55,48 @@ procfsiread(struct inode* dp, struct inode *ip) {
 
 int
 procfsread(struct inode *ip, char *dst, int off, int n) {
-	struct dirent *de=0; //avoid compilation error of uninitialized variable
-	struct dirent *buffer = (struct dirent *)buf;
+
+	struct dirent proc_entries[NPROC+2];
+	int currentIndex=2;
+	 proc_entries[0].inum = ip->inum;
+	  strncpy(proc_entries[0].name, ".", 1);
+	  proc_entries[0].name[1]='\0';
+	  proc_entries[1].inum = 19;
+	  strncpy(proc_entries[1].name, "..", 2);
+	  proc_entries[1].name[2]='\0';
 	struct proc *p;
+
+
+
+
 	//struct dirent dot, dotdot;
 	if (namei("proc")==ip){
+		//cprintf("FFFFFF\n");
 		//dot.inum = 0;
 		//dot.name=""
 		acquire(&ptable.lock);
 		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 			if(p->state != UNUSED && p->state != ZOMBIE){
-				itoa(p->pid, de->name);
-				de->inum = p->pid + 60000;
-				memmove(buffer, de, sizeof(struct dirent));
-				memset(de, 0, sizeof(struct dirent));
-				buffer++;
+				itoa(p->pid, proc_entries[currentIndex].name);
+				//cprintf("THE DE AME IS %s    ",proc_entries[currentIndex].name);
+				proc_entries[currentIndex].inum = p->pid + 60000;
+				//cprintf("THE DE INUM IS %d\n",proc_entries[currentIndex].inum);
+				currentIndex++;
+
+
 			}
 		}
+
+
+
 		release(&ptable.lock);
-		memmove(dst, buf+off, n);
+
+
+		if (off >= currentIndex*sizeof(struct dirent))
+						return 0;
+
+
+		memmove(dst, (char *)((uint)proc_entries+(uint)off), n);
 		return n;
 	}
 	//case: /proc/pid example: /proc/5
