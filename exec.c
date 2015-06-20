@@ -80,6 +80,8 @@ exec(char *path, char **argv)
 
 
   }
+  //assignemt 4 addidiion:
+  proc->cmdline[offset-1] = '\0';
   ustack[3+argc] = 0;
 
   ustack[0] = 0xffffffff;  // fake return PC

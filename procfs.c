@@ -126,18 +126,39 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
 	release(&ptable.lock);
 
 	if (type == CMDLINE){
-		memmove(dst, myproc->cmdline, 50);
+		memmove(dst, myproc->cmdline, strlen(myproc->cmdline));
 		return n;
 	}
 	else if (type == CWD){
-		cprintf("CWD requested!\n");
+		ilock(myproc->cwd);
+		int bytes_read = readi(myproc->cwd, dst, off, n);
+		iunlock(myproc->cwd);
+		return bytes_read;
 	}
 	else if (type == EXE){
-		cprintf("EXE requested!\n");
+		struct inode* exe = dirlookup(myproc->cwd, p->name, 0);
+		ilock(exe);
+		int bytes_read = readi(exe, dst, off, n);
+		iunlock(exe);
+		return bytes_read;
 	}
 	else if (type == STATUS){
-		cprintf("STATUS requested!\n");
+		int p_state = myproc->state;
+		char proc_size[10];
+		if (p_state == RUNNABLE){
+			memmove(dst, "Status: Runnable, size: ", strlen("Status: Runnable, size: "));
+			itoa(myproc->sz, proc_size);
+			memmove(dst + strlen("Status: Runnable, size: "), proc_size, strlen(proc_size)+1);
+			return n;
+		}
+		else{ //running
+			memmove(dst, "Status: Running, size: ", strlen("Status: Running, size: "));
+			itoa(myproc->sz, proc_size);
+			memmove(dst + strlen("Status: Running, size: "), proc_size, strlen(proc_size)+1);
+			return n;
+		}
 	}
+
 	else if (type == FDINFO){
 		cprintf("FDINFO requested!\n");
 	}

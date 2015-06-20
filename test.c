@@ -20,22 +20,77 @@ void itoa(int n, char *str){
 }
 
 int
-main(void)
+main(int argc, char *argv[])
 {
 
-  //test0: /proc/
-  int fd = open("proc/2/cmdline",O_RDONLY);
-  if (fd == 0){
-	  printf(1, "Failed to open path\n test 0 failed.\n");
-  }
-  else{
-	  printf(1, "fd: %d\n",fd);
+	  int pid;
+	  char path[16];
+	  int fd;
 	  char buf[50];
-	  read(fd, buf,50);
-	  printf(1 ,"cmdline: %s\n", buf);
-  }
 
+	  //test1:cmdline
+	  if (strcmp(argv[1], "cmdline")==0){
+		  pid = getpid();
+		  strcpy(path, "/proc/");
+		  itoa(pid, path+6);
+		  memmove(path+strlen(path), "/cmdline", 9);
+		  printf(1, "user tries to open path: %s\n", path);
+		  fd =  open(path, O_RDONLY);
+		  read(fd, buf, 50);
+		  printf(1, "cmdline: %s\n", buf);
+		  exit();
+	  }
+	  //test2 : cwd
+	  if (strcmp(argv[1], "cwd")==0){
+	  		  pid = getpid();
+	  		  strcpy(path, "/proc/");
+	  		  itoa(pid, path+6);
+	  		  memmove(path+strlen(path), "/cwd", 9);
+	  		  printf(1, "user tries to open path: %s\n", path);
+	  		  fd =  open(path, O_RDONLY);
+	  		  read(fd, buf, 50);
+	  		  printf(1, "cwd: %s\n", buf);
+	  		  exit();
+	  	  }
+	  //test3: exe
+	  if (strcmp(argv[1], "exe")==0){
+		  	  printf(1, "testing exe\n");
+	  		  pid = getpid();
+	  		  strcpy(path, "/proc/");
+	  		  itoa(pid, path+6);
+	  		  memmove(path+strlen(path), "/exe", 9);
+	  		  printf(1, "user tries to open path: %s\n", path);
+	  		  fd =  open(path, O_RDONLY);
+	  		  read(fd, buf, 50);
+	  		  printf(1, "exe: %s\n", buf);
+	  		  exit();
+	  	  }
+	  //test4: fdinfo
+	  if (strcmp(argv[1], "fdinfo")==0){
+	  		  pid = getpid();
+	  		  strcpy(path, "/proc/");
+	  		  itoa(pid, path+6);
+	  		  memmove(path+strlen(path), "/fdinfo", 9);
+	  		  printf(1, "user tries to open path: %s\n", path);
+	  		  fd =  open(path, O_RDONLY);
+	  		  read(fd, buf, 50);
+	  		  printf(1, "fdinfo: %s\n", buf);
+	  		  exit();
+	  	  }
+	  //test5: status
+	  // try with and without: sbrk(10000);
+	  if (strcmp(argv[1], "status")==0){
+	  		  pid = getpid();
+	  		  strcpy(path, "/proc/");
+	  		  itoa(pid, path+6);
+	  		  memmove(path+strlen(path), "/status", 9);
+	  		  printf(1, "user tries to open path: %s\n", path);
+	  		  fd =  open(path, O_RDONLY);
+	  		  read(fd, buf, 50);
+	  		  printf(1, "status: %s\n", buf);
+	  		  exit();
+	  	  }
+	  printf(1,"enter arguments!\n");
 
-
-  exit();
+	  exit();
 }
