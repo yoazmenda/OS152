@@ -14,6 +14,7 @@
 #define CWD 400
 #define EXE 500
 #define FDINFO 600
+#define INSIDEFDINFO 900
 #define STATUS 700
 ushort procfs_proc_nums[7] = {0,1,2,3,4,5,6};
 char *procfs_proc_names[7] = { ".", "..", "cmdline", "cwd", "exe", "fdinfo", "status"};
@@ -53,8 +54,11 @@ void
 procfsiread(struct inode* dp, struct inode *ip) {
 	ip->flags |= I_VALID;
 	ip->type = T_DEV;
+
 	ip->major = 2;
-	if (/*(ip->inum % 1000) == FDINFO ||*/ dp->inum == namei("proc")->inum)
+	int pid;
+	pid = ip->inum / 1000;
+	if (ip->inum - pid*1000 || dp->inum == namei("proc")->inum)
 		ip->minor = T_DIR;
 	else
 		ip->minor = T_FILE;
@@ -65,25 +69,25 @@ procfsiread(struct inode* dp, struct inode *ip) {
 int
 procfsread(struct inode *ip, char *dst, int off, int n) {
 	struct proc *p;
-	struct dirent proc_entries[NPROC+2];
+	struct dirent proc_dirents[NPROC+2];
 	struct dirent procPid[7];
 
 	//struct dirent dot, dotdot;
 	if (ip == namei("proc")){
 		int currentIndex=2;
-			 proc_entries[0].inum = ip->inum;
-			  strncpy(proc_entries[0].name, ".", 1);
-			  proc_entries[0].name[1]='\0';
-			  proc_entries[1].inum = 1;
-			  strncpy(proc_entries[1].name, "..", 2);
-			  proc_entries[1].name[2]='\0';
+			 proc_dirents[0].inum = ip->inum;
+			  strncpy(proc_dirents[0].name, ".", 1);
+			  proc_dirents[0].name[1]='\0';
+			  proc_dirents[1].inum = 1;
+			  strncpy(proc_dirents[1].name, "..", 2);
+			  proc_dirents[1].name[2]='\0';
 		acquire(&ptable.lock);
 		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 			if(p->state != UNUSED && p->state != ZOMBIE){
-				itoa(p->pid, proc_entries[currentIndex].name);
-				//cprintf("THE DE AME IS %s    ",proc_entries[currentIndex].name);
-				proc_entries[currentIndex].inum = p->pid * 1000;
-				//cprintf("THE DE INUM IS %d\n",proc_entries[currentIndex].inum);
+				itoa(p->pid, proc_dirents[currentIndex].name);
+				//cprintf("THE DE AME IS %s    ",proc_dirents[currentIndex].name);
+				proc_dirents[currentIndex].inum = p->pid * 1000;
+				//cprintf("THE DE INUM IS %d\n",proc_dirents[currentIndex].inum);
 				currentIndex++;
 			}
 		}
@@ -94,7 +98,7 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
 						return 0;
 
 
-		memmove(dst, (char *)((uint)proc_entries+(uint)off), n);
+		memmove(dst, (char *)((uint)proc_dirents+(uint)off), n);
 		return n;
 	}
 	///proc/PID
@@ -113,7 +117,6 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
 	}
 
 	int pid = ip->inum / 1000;
-	cprintf("pid: %d\n", pid);
 	int type = ip->inum % 1000;
 	struct proc *myproc;
 	acquire(&ptable.lock);
@@ -160,8 +163,92 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
 	}
 
 	else if (type == FDINFO){
-		cprintf("FDINFO requested!\n");
+		struct dirent procFiles[NOFILE+2];
+		struct file * currentFile;
+		int currentIndex=2;
+		int i;
+		procFiles[0].inum = ip->inum;
+		strncpy(procFiles[0].name, ".", 1);
+		procFiles[0].name[1]='\0';
+		procFiles[1].inum = 1;
+		strncpy(procFiles[1].name, "..", 2);
+		procFiles[1].name[2]='\0';
+		for(i=0;i<NOFILE;i++){
+			currentFile=myproc->ofile[i];
+			if(currentFile!=0){
+				itoa(i, procFiles[currentIndex].name);
+				procFiles[currentIndex].inum = ip->inum+i+1;
+				currentIndex++;
+			}
+		}
+		if (off >= currentIndex*sizeof(struct dirent))
+			return 0;
+		memmove(dst, (char *)((uint)procFiles+(uint)off), n);
+			return n;
+
 	}
+	else if (type > FDINFO && type < 700  ){
+		int numOfFile = type - FDINFO-1;
+		struct file *f = myproc->ofile[numOfFile];
+		uint offset = 0;
+		switch (f->ip->type){
+		case T_DIR:
+			memmove(dst, "Type:  directory\n", strlen("Type:  directory\n"));
+			offset = strlen("Type:  directory\n");
+			break;
+		case T_FILE:
+			memmove(dst, "Type:  File\n", strlen("Type:  File\n"));
+			offset = strlen("Type:  File\n");
+			break;
+		case T_DEV:
+			memmove(dst, "Type:  Device\n", strlen("Type:  Device\n"));
+			offset = strlen("Type:  Device\n");
+			break;
+		default:
+			panic("file has no type\n!");
+		}
+
+		//move offset
+		char buf[10];
+		itoa(f->off, buf);
+		memmove((char *)((uint)dst+offset), "Offset: ", strlen("Offset: "));
+		offset += strlen("Offset: ");
+		memmove((char *)((uint)dst+offset), buf, strlen(buf));
+		offset += strlen(buf);
+		memmove((char *)((uint)dst+offset), "\n", strlen("\n"));
+		offset += strlen("\n");
+
+		//move flags:
+		if (f->readable && f->writable){
+			memmove((char*)((uint)dst+offset), "Flags: RDWR\n", strlen("Flags: RDWR\n")+1);
+			offset += strlen("Flags: RDWR\n")+1;
+		}
+		else if(f->readable){
+			memmove((char*)((uint)dst+offset), "Flags: RDONLY\n", strlen("Flags: RDONLY\n")+1);
+			offset += strlen("Flags: RDONLY\n")+1;
+		}
+		else if(f->writable){
+			memmove((char*)((uint)dst+offset), "Flags: WRONLY\n", strlen("Flags: WRONLY\n")+1);
+			offset += strlen("Flags: WRONLY\n")+1;
+		}
+		else{
+			memmove((char*)((uint)dst+offset), "Flags: No Privileges\n", strlen("Flags: No Privileges\n")+1);
+			offset += strlen("Flags: No Privileges\n")+1;
+		}
+
+		if (off >= offset){
+			return 0;
+		}
+		else{
+			return n;
+		}
+
+
+	}
+
+
+
+
 	else{
 		cprintf("wtf\n");
 	}

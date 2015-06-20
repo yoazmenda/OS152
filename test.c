@@ -66,17 +66,28 @@ main(int argc, char *argv[])
 	  		  exit();
 	  	  }
 	  //test4: fdinfo
-	  if (strcmp(argv[1], "fdinfo")==0){
-	  		  pid = getpid();
-	  		  strcpy(path, "/proc/");
-	  		  itoa(pid, path+6);
-	  		  memmove(path+strlen(path), "/fdinfo", 9);
-	  		  printf(1, "user tries to open path: %s\n", path);
-	  		  fd =  open(path, O_RDONLY);
-	  		  read(fd, buf, 50);
-	  		  printf(1, "fdinfo: %s\n", buf);
-	  		  exit();
-	  	  }
+	  	  if (strcmp(argv[1], "fdinfo")==0){
+	  	  		  pid = getpid();
+	  	  		  strcpy(path, "/proc/");
+	  	  		  itoa(pid, path+6);
+	  	  		  memmove(path+strlen(path), "/fdinfo", 9);
+	  	  		  printf(1, "user tries to open path: %s\n", path);
+	  	  		  fd =  open(path, O_RDONLY);
+	  	  		  read(fd, buf, 50);
+	  	  		  //printf(1, "fdinfo: %s\n", buf);
+	  	  		  exit();
+	  	  }//test4.5: fdinfo with file
+		  if (strcmp(argv[1], "2fdinfo")==0){
+		  		  pid = getpid();
+		  		  strcpy(path, "/proc/");
+		  		  itoa(pid, path+6);
+		  		  memmove(path+strlen(path), "/fdinfo/0", 9);
+		  		  printf(1, "user tries to open path: %s\n", path);
+		  		  fd =  open(path, O_RDONLY);
+		  		  read(fd, buf, 50);
+		  		  printf(1, "fdinfo: %s\n", buf);
+		  		  exit();
+		  }
 	  //test5: status
 	  // try with and without: sbrk(10000);
 	  if (strcmp(argv[1], "status")==0){
