@@ -22,11 +22,11 @@ void itoa(int n, char *str){
 int
 main(void)
 {
+//
+//  //test0: /proc/
+//  int fd = open("/proc/",O_RDONLY);
+//  printf(1, "fd: %d\n",fd);
 
-  //test0: /proc/
-  int fd = open("/proc/",O_RDONLY);
-  printf(1, "fd: %d\n",fd);
-/*
   //test1: /proc/pid
   int pid,fd;
   char path[16];
@@ -36,7 +36,7 @@ main(void)
   printf(1, "user tries to open path: %s\n", path);
   fd = open(path, O_RDONLY);
   printf(1, "fd: %d\n",fd);
-*/
+
 
 
 

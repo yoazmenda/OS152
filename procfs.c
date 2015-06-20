@@ -26,7 +26,13 @@ void itoa(int n, char *str){
 	str[len]='\0';
 }
 
+
+
+//procfs stuff
 char buf[(NPROC+2) * sizeof(struct dirent)];
+int procfs_proc_nums[7] = {50000,50001,50002,50003,500004,50005,50006};
+char *procfs_proc_names[7] = {"cmdline", "cwd", "exe", "fdinfo", "status", ".", ".."};
+
 
 extern struct {
   struct spinlock lock;
@@ -55,13 +61,13 @@ procfsiread(struct inode* dp, struct inode *ip) {
 
 int
 procfsread(struct inode *ip, char *dst, int off, int n) {
-	struct dirent *de=0; //avoid compilation error of uninitialized variable
-	struct dirent *buffer = (struct dirent *)buf;
+	struct dirent *de=0;
+	struct dirent *buffer;
 	struct proc *p;
-	//struct dirent dot, dotdot;
+
+	//case: ip = "/proc/"
 	if (namei("proc")==ip){
-		//dot.inum = 0;
-		//dot.name=""
+		buffer = (struct dirent *)buf;
 		acquire(&ptable.lock);
 		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 			if(p->state != UNUSED && p->state != ZOMBIE){
@@ -76,15 +82,10 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
 		memmove(dst, buf+off, n);
 		return n;
 	}
-	//case: /proc/pid example: /proc/5
-	//else if(){
-//
-	//}
 
-
-
-
-
+	else if (ip->inum >= 60000){
+		cprintf("case /proc/5");
+	}
 	return 0;
 }
 
