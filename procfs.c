@@ -11,6 +11,11 @@
 #include "proc.h"
 #include "x86.h"
 
+int procfs_proc_nums[7] = {50000,50001,50002,50003,500004,50005,50006};
+char *procfs_proc_names[7] = {"cmdline", "cwd", "exe", "fdinfo", "status", ".", ".."};
+ushort procfs_proc_names_lengths[7] = {7, 3,3,6,6,1,2};
+
+
 void itoa(int n, char *str){
 	int temp, len;
 	temp = n;
@@ -56,21 +61,23 @@ procfsiread(struct inode* dp, struct inode *ip) {
 int
 procfsread(struct inode *ip, char *dst, int off, int n) {
 
-	struct dirent proc_entries[NPROC+2];
-	int currentIndex=2;
-	 proc_entries[0].inum = ip->inum;
-	  strncpy(proc_entries[0].name, ".", 1);
-	  proc_entries[0].name[1]='\0';
-	  proc_entries[1].inum = 19;
-	  strncpy(proc_entries[1].name, "..", 2);
-	  proc_entries[1].name[2]='\0';
+
+
 	struct proc *p;
-
-
+	struct dirent proc_entries[NPROC+2];
+	struct dirent procPid[7];
 
 
 	//struct dirent dot, dotdot;
 	if (namei("proc")==ip){
+
+		int currentIndex=2;
+			 proc_entries[0].inum = ip->inum;
+			  strncpy(proc_entries[0].name, ".", 1);
+			  proc_entries[0].name[1]='\0';
+			  proc_entries[1].inum = 1;
+			  strncpy(proc_entries[1].name, "..", 2);
+			  proc_entries[1].name[2]='\0';
 		//cprintf("FFFFFF\n");
 		//dot.inum = 0;
 		//dot.name=""
@@ -104,8 +111,23 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
 //
 	//}
 
+	if(ip->inum >= 60000){
+		int i;
+		for(i=0 ;i<7;i++){
+			procPid[i].inum=procfs_proc_nums[i];
+			memmove(procPid[i].name,procfs_proc_names[i],procfs_proc_names_lengths[i]+1);
 
 
+		}
+
+		if (off >= 7*sizeof(struct dirent)){
+					return 0;
+				}
+
+		memmove(dst, (char *)((uint)procPid+(uint)off), n);
+		return n;
+
+	}
 
 
 	return 0;
