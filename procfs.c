@@ -11,6 +11,17 @@
 #include "proc.h"
 #include "x86.h"
 
+struct procfs {
+	struct spinlock lock;
+	struct dirent procfs_dirents[NPROC+2]; // + . and ..
+	struct dirent proc_dirents[7];
+	struct dirent proc_fds[NOFILE+2];
+	int proc_fds_num;
+	int proc_dirents_num;
+}procfs ;
+
+
+
 int 
 procfsisdir(struct inode *ip) {
   return 0;
