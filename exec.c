@@ -61,6 +61,7 @@ exec(char *path, char **argv)
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
   sp = sz;
 
+  int offset = 0;
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
     if(argc >= MAXARG)
@@ -69,6 +70,15 @@ exec(char *path, char **argv)
     if(copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
       goto bad;
     ustack[3+argc] = sp;
+
+    //ASSIGNEMNT 4 - add the command line arguments to the
+
+    memmove((char *)( (uint)proc->cmdline + (uint)offset), argv[argc], strlen(argv[argc]));
+    memmove((char *)( (uint)proc->cmdline + (uint)offset+(uint)strlen(argv[argc])), " ", 1);
+    offset += 1+ strlen(argv[argc]);
+
+
+
   }
   ustack[3+argc] = 0;
 

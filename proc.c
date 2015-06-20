@@ -155,7 +155,7 @@ fork(void)
   np->cwd = idup(proc->cwd);
 
   safestrcpy(np->name, proc->name, sizeof(proc->name));
- 
+  safestrcpy(np->cmdline, proc->cmdline, sizeof(proc->cmdline));
   pid = np->pid;
 
   // lock to force the compiler to emit the np->state write last.

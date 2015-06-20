@@ -10,8 +10,17 @@
 #include "mmu.h"
 #include "proc.h"
 #include "x86.h"
+#define CMDLINE 300
+#define CWD 400
+#define EXE 500
+#define FDINFO 600
+#define STATUS 700
+ushort procfs_proc_nums[7] = {0,1,2,3,4,5,6};
+char *procfs_proc_names[7] = { ".", "..", "cmdline", "cwd", "exe", "fdinfo", "status"};
+ushort procfs_proc_names_lengths[7] = {1,2,7, 3,3,6,6};
 
-int itoa(int n, char *str){
+
+void itoa(int n, char *str){
 	int temp, len;
 	temp = n;
 	len = 1;
@@ -24,14 +33,8 @@ int itoa(int n, char *str){
 		n/=10;
 	}
 	str[len]='\0';
-	return len-1;
 }
 
-//procfs stuff
-char buf[(NPROC+2) * sizeof(struct dirent)];
-int procfs_proc_nums[7] = {50000,50001,50002,50003,500004,50005,50006};
-char *procfs_proc_names[7] = {"cmdline", "cwd", "exe", "fdinfo", "status", ".", ".."};
-ushort procfs_proc_names_lengths[7] = {7, 3,3,6,6,1,2};
 
 
 extern struct {
@@ -48,13 +51,12 @@ procfsisdir(struct inode *ip) {
 
 void
 procfsiread(struct inode* dp, struct inode *ip) {
-
 	ip->flags |= I_VALID;
 	ip->type = T_DEV;
 	ip->major = 2;
-	//if ((ip->inum % 1000) == FDINFO || dp->inum == PROC_INUM)
-	//	ip->minor = T_DIR;
-	//else
+	if (/*(ip->inum % 1000) == FDINFO ||*/ dp->inum == namei("proc")->inum)
+		ip->minor = T_DIR;
+	else
 		ip->minor = T_FILE;
 	ip->ref = 1;
 
@@ -62,84 +64,92 @@ procfsiread(struct inode* dp, struct inode *ip) {
 
 int
 procfsread(struct inode *ip, char *dst, int off, int n) {
-	int i;
-	char pid_name[4];
-	int len;
 	struct proc *p;
-	struct dirent *de = (struct dirent *)buf;
-	char * prev = buf;
+	struct dirent proc_entries[NPROC+2];
+	struct dirent procPid[7];
 
-
-	//case /proc/
-	if (namei("proc")==ip){
+	//struct dirent dot, dotdot;
+	if (ip == namei("proc")){
+		int currentIndex=2;
+			 proc_entries[0].inum = ip->inum;
+			  strncpy(proc_entries[0].name, ".", 1);
+			  proc_entries[0].name[1]='\0';
+			  proc_entries[1].inum = 1;
+			  strncpy(proc_entries[1].name, "..", 2);
+			  proc_entries[1].name[2]='\0';
 		acquire(&ptable.lock);
-
-		de->inum = 45000; //dot
-		memmove(de->name, ".", 2);
-		de  = (struct dirent *)prev+2+(sizeof (ushort));
-		prev = (char*)de;
-
-		de->inum = 45001; //dotdot
-		memmove(de->name, "..", 3);
-		de  = (struct dirent *)prev+3+(sizeof (ushort));
-		prev = (char*)de;
-
-		//other processes
 		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 			if(p->state != UNUSED && p->state != ZOMBIE){
-				//PID
-				len = itoa(p->pid, pid_name);
-				memmove(de->name, pid_name, len+1);
-				//inode number
-				de->inum = p->pid + 60000;
-				de  = (struct dirent *)prev+len+1+(sizeof (ushort));
-				prev = (char *)de;
+				itoa(p->pid, proc_entries[currentIndex].name);
+				//cprintf("THE DE AME IS %s    ",proc_entries[currentIndex].name);
+				proc_entries[currentIndex].inum = p->pid * 1000;
+				//cprintf("THE DE INUM IS %d\n",proc_entries[currentIndex].inum);
+				currentIndex++;
 			}
 		}
-		memmove(dst, buf+off, n);
-
-		//test : print result:
-//		de = (struct dirent *)dst;
-//		char * prev = buf;
-//		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-//			if(p->state != UNUSED && p->state != ZOMBIE){
-//				cprintf("de->name: %s.\n", de->name);
-//				cprintf("de->num: %d.\n", de->inum);
-//				de  = (struct dirent *)prev+len+1+2;
-//				prev = (char *)de;
-//			}
-//		}
 		release(&ptable.lock);
+
+
+		if (off >= currentIndex*sizeof(struct dirent))
+						return 0;
+
+
+		memmove(dst, (char *)((uint)proc_entries+(uint)off), n);
+		return n;
+	}
+	///proc/PID
+
+	if(ip->inum % 1000 == 0){
+		int i;
+		for(i=0 ;i<7;i++){
+			procPid[i].inum=ip->inum + (i+1)*100;
+			memmove(procPid[i].name,procfs_proc_names[i],procfs_proc_names_lengths[i]+1);
+		}
+		if (off >= 7*sizeof(struct dirent)){
+			return 0;
+		}
+		memmove(dst, (char *)((uint)procPid+(uint)off), n);
 		return n;
 	}
 
-	//case: ip = "/proc/PID"
-	else if (ip->inum >= 60000 || ip->inum == 45000 || ip->inum == 45001){
-		cprintf("in case: proc/PID\n");
-		for(i=0;i<5;i++){
-			memmove(de->name, procfs_proc_names[i] ,procfs_proc_names_lengths[i]+1); //+null terminate
-			//inode number
-			de->inum = procfs_proc_nums[i];
-			de  = (struct dirent *)prev+procfs_proc_names_lengths[i]+1+(sizeof (ushort));
-			prev = (char *)de;
+	int pid = ip->inum / 1000;
+	cprintf("pid: %d\n", pid);
+	int type = ip->inum % 1000;
+	struct proc *myproc;
+	acquire(&ptable.lock);
+	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+		if (p->pid == pid){
+			myproc = p;
+			break;
 		}
-		memmove(dst, buf+off, n);
+	}
+	release(&ptable.lock);
 
-
-		//test : print result:
-		de = (struct dirent *)dst;
-		char * prev = buf;
-		for(i=0;i<5;i++){
-			cprintf("de->name: %s.\n", de->name);
-			cprintf("de->num: %d.\n", de->inum);
-			de  = (struct dirent *)prev+procfs_proc_names_lengths[i]+1+2;
-			prev = (char *)de;
-		}
+	if (type == CMDLINE){
+		memmove(dst, myproc->cmdline, 50);
 		return n;
 	}
-
+	else if (type == CWD){
+		cprintf("CWD requested!\n");
+	}
+	else if (type == EXE){
+		cprintf("EXE requested!\n");
+	}
+	else if (type == STATUS){
+		cprintf("STATUS requested!\n");
+	}
+	else if (type == FDINFO){
+		cprintf("FDINFO requested!\n");
+	}
+	else{
+		cprintf("wtf\n");
+	}
 	return 0;
+
 }
+
+
+
 
 
 int
@@ -155,6 +165,4 @@ procfsinit(void)
   devsw[PROCFS].iread = procfsiread;
   devsw[PROCFS].write = procfswrite;
   devsw[PROCFS].read = procfsread;
-
-
 }

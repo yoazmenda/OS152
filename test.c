@@ -24,22 +24,16 @@ main(void)
 {
 
   //test0: /proc/
-  int fd = open("/proc/",O_RDONLY);
+  int fd = open("proc/2/cmdline",O_RDONLY);
   if (fd == 0){
 	  printf(1, "Failed to open path\n test 0 failed.\n");
   }
-
-
-  //test1: /proc/pid
-  int pid;
-  char path[16];
-  pid = getpid();
-  strcpy(path, "/proc/");
-  itoa(pid, path+6);
-  printf(1, "user tries to open path: %s\n", path);
-  fd = open(path, O_RDONLY);
-  printf(1, "fd: %d\n",fd);
-
+  else{
+	  printf(1, "fd: %d\n",fd);
+	  char buf[50];
+	  read(fd, buf,50);
+	  printf(1 ,"cmdline: %s\n", buf);
+  }
 
 
 
