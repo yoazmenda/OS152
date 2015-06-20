@@ -68,9 +68,23 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
 	struct proc *p;
 	struct dirent *de = (struct dirent *)buf;
 	char * prev = buf;
+
+
 	//case /proc/
 	if (namei("proc")==ip){
-	acquire(&ptable.lock);
+		acquire(&ptable.lock);
+
+		de->inum = 45000; //dot
+		memmove(de->name, ".", 2);
+		de  = (struct dirent *)prev+2+(sizeof (ushort));
+		prev = (char*)de;
+
+		de->inum = 45001; //dotdot
+		memmove(de->name, "..", 3);
+		de  = (struct dirent *)prev+3+(sizeof (ushort));
+		prev = (char*)de;
+
+		//other processes
 		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 			if(p->state != UNUSED && p->state != ZOMBIE){
 				//PID
@@ -100,7 +114,7 @@ procfsread(struct inode *ip, char *dst, int off, int n) {
 	}
 
 	//case: ip = "/proc/PID"
-	else if (ip->inum >= 60000){
+	else if (ip->inum >= 60000 || ip->inum == 45000 || ip->inum == 45001){
 		cprintf("in case: proc/PID\n");
 		for(i=0;i<5;i++){
 			memmove(de->name, procfs_proc_names[i] ,procfs_proc_names_lengths[i]+1); //+null terminate
